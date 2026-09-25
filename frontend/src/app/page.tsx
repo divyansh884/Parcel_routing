@@ -1,0 +1,198 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Package, Truck, AlertTriangle, CheckCircle, Search } from 'lucide-react';
+
+type RoutingDecision = {
+  status: string;
+  department?: string;
+  approvalType?: string;
+  ruleId?: string;
+  ruleVersion?: number;
+  reason: string;
+};
+
+export default function Home() {
+  const [weightKg, setWeightKg] = useState('');
+  const [valueEur, setValueEur] = useState('');
+  const [destinationCountry, setDestinationCountry] = useState('DE');
+  
+  const [loading, setLoading] = useState(false);
+  const [decision, setDecision] = useState<RoutingDecision | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem('token');
+    if (storedToken) setToken(storedToken);
+    else window.location.href = '/login';
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setDecision(null);
+
+    try {
+      const res = await fetch('http://localhost:3001/api/parcels/route', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          weightKg: parseFloat(weightKg),
+          valueEur: parseFloat(valueEur),
+          destinationCountry,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error?.message || 'Something went wrong while routing the parcel.');
+      } else {
+        setDecision(data);
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        {/* Form Section */}
+        <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-3 mb-6">
+            <Package className="text-blue-600 w-6 h-6" />
+            <h1 className="text-2xl font-semibold text-gray-800">Route Parcel</h1>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                min="0"
+                required
+                value={weightKg}
+                onChange={e => setWeightKg(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="e.g. 5.5"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Value (€)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                min="0"
+                required
+                value={valueEur}
+                onChange={e => setValueEur(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="e.g. 1500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Destination Country</label>
+              <input 
+                type="text" 
+                maxLength={2}
+                required
+                value={destinationCountry}
+                onChange={e => setDestinationCountry(e.target.value.toUpperCase())}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase"
+                placeholder="e.g. DE, US, IN"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex justify-center items-center"
+            >
+              {loading ? (
+                <span className="animate-pulse">Processing...</span>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Route Parcel
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Result Section */}
+        <div className="flex flex-col justify-center">
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+              <div className="flex">
+                <AlertTriangle className="h-5 w-5 text-red-500 mr-3" />
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {!decision && !error && (
+             <div className="text-center text-gray-400">
+               <Truck className="w-16 h-16 mx-auto mb-4 opacity-20" />
+               <p>Submit a parcel to see routing results.</p>
+             </div>
+          )}
+
+          {decision && (
+            <div className={`p-6 rounded-xl border-l-4 shadow-sm bg-white ${decision.status === 'ROUTED' ? 'border-green-500' : 'border-yellow-500'}`}>
+              <div className="flex items-center space-x-3 mb-4">
+                {decision.status === 'ROUTED' ? (
+                  <CheckCircle className="text-green-500 w-6 h-6" />
+                ) : (
+                  <AlertTriangle className="text-yellow-500 w-6 h-6" />
+                )}
+                <h2 className="text-xl font-bold text-gray-800">
+                  {decision.status === 'ROUTED' ? 'ROUTED' : 'PENDING APPROVAL'}
+                </h2>
+              </div>
+              
+              <div className="space-y-4">
+                {decision.department && (
+                  <div>
+                    <p className="text-sm text-gray-500">Department</p>
+                    <p className="font-semibold text-gray-900">{decision.department} Department</p>
+                  </div>
+                )}
+                
+                {decision.approvalType && (
+                  <div>
+                    <p className="text-sm text-gray-500">Approval Required</p>
+                    <p className="font-semibold text-gray-900">{decision.approvalType}</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm text-gray-500">Reason</p>
+                  <p className="text-gray-800">{decision.reason}</p>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex justify-between text-xs text-gray-400">
+                  <span>Rule: {decision.ruleId}</span>
+                  <span>Version: v{decision.ruleVersion}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}

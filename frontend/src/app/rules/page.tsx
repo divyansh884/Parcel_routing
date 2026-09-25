@@ -1,0 +1,472 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Network, Plus, Trash2, CheckCircle, ArrowUp, ArrowDown, FolderPlus, X } from 'lucide-react';
+
+type Rule = {
+  id: string;
+  priority: number;
+  enabled: boolean;
+  condition: {
+    field: string;
+    operator: 'gt' | 'gte' | 'lt' | 'lte' | 'eq';
+    value: number | string;
+  };
+  action: 
+    | { type: 'ROUTE'; department: string }
+    | { type: 'REQUIRE_APPROVAL'; approvalType: string };
+};
+
+export default function RulesPage() {
+  const [role, setRole] = useState<string | null>(null);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [activeVersion, setActiveVersion] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+
+  // Departments State
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [showDeptModal, setShowDeptModal] = useState(false);
+  const [newDeptName, setNewDeptName] = useState('');
+
+  const [viewMode, setViewMode] = useState<'VISUAL' | 'JSON'>('VISUAL');
+  const [jsonText, setJsonText] = useState('');
+
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem('token');
+    const storedRole = sessionStorage.getItem('role');
+    
+    if (storedRole !== 'ADMIN' || !storedToken) {
+      window.location.href = '/'; 
+    } else {
+      setRole(storedRole);
+      fetchRules(storedToken);
+      fetchDepartments(storedToken);
+    }
+  }, []);
+
+  const fetchDepartments = async (authToken: string) => {
+    try {
+      const res = await fetch('http://localhost:3001/api/departments', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDepartments(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = sessionStorage.getItem('token');
+    if (!token || !newDeptName.trim()) return;
+
+    try {
+      const res = await fetch('http://localhost:3001/api/departments', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ name: newDeptName })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || 'Failed to add department');
+      }
+      setDepartments([...departments, newDeptName.trim().toUpperCase()]);
+      setNewDeptName('');
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const deleteDepartment = async (name: string) => {
+    const token = sessionStorage.getItem('token');
+    if (!token || !confirm(`Delete department ${name}?`)) return;
+
+    try {
+      const res = await fetch(`http://localhost:3001/api/departments/${name}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setDepartments(departments.filter(d => d !== name));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchRules = async (authToken: string) => {
+    try {
+      const res = await fetch('http://localhost:3001/api/rules/active', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch rules');
+      
+      const data = await res.json();
+      setActiveVersion(data.version);
+      
+      const sortedRules = (data.rules || []).sort((a: Rule, b: Rule) => b.priority - a.priority);
+      setRules(sortedRules);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJsonToggle = () => {
+    if (viewMode === 'VISUAL') {
+      setJsonText(JSON.stringify(rules, null, 2));
+      setViewMode('JSON');
+    } else {
+      try {
+        const parsed = JSON.parse(jsonText);
+        setRules(parsed);
+        setViewMode('VISUAL');
+      } catch (e) {
+        alert('Invalid JSON');
+      }
+    }
+  };
+
+  const addRule = () => {
+    const newRule: Rule = {
+      id: `rule-${Date.now()}`,
+      priority: rules.length > 0 ? rules[0].priority + 10 : 100,
+      enabled: true,
+      condition: { field: 'weightKg', operator: 'lt', value: 10 },
+      action: { type: 'ROUTE', department: departments.length > 0 ? departments[0] : 'REGULAR' }
+    };
+    setRules([newRule, ...rules]);
+  };
+
+  const updateRule = (index: number, updatedRule: Rule) => {
+    const newRules = [...rules];
+    newRules[index] = updatedRule;
+    setRules(newRules);
+  };
+
+  const deleteRule = (index: number) => {
+    const newRules = rules.filter((_, i) => i !== index);
+    setRules(newRules);
+  };
+
+  const moveRule = (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index > 0) {
+      const newRules = [...rules];
+      const temp = newRules[index];
+      newRules[index] = newRules[index - 1];
+      newRules[index - 1] = temp;
+      newRules.forEach((r, i) => { r.priority = (newRules.length - i) * 10; });
+      setRules(newRules);
+    } else if (direction === 'down' && index < rules.length - 1) {
+      const newRules = [...rules];
+      const temp = newRules[index];
+      newRules[index] = newRules[index + 1];
+      newRules[index + 1] = temp;
+      newRules.forEach((r, i) => { r.priority = (newRules.length - i) * 10; });
+      setRules(newRules);
+    }
+  };
+
+  const publishRules = async () => {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+    
+    setSaveStatus('Saving and evaluating retroactively...');
+    try {
+      const currentRules = viewMode === 'JSON' ? JSON.parse(jsonText) : rules;
+      
+      const res = await fetch('http://localhost:3001/api/rules/publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(currentRules)
+      });
+      
+      if (!res.ok) throw new Error('Failed to publish rules');
+      const data = await res.json();
+      setActiveVersion(data.version);
+      setSaveStatus('Published successfully! Parcels retro-routed.');
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (err: any) {
+      alert(err.message);
+      setSaveStatus(null);
+    }
+  };
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading Rules Engine...</div>;
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+
+        {/* DEPARTMENT MANAGER MODAL */}
+        {showDeptModal && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white text-gray-900 rounded-xl p-6 max-w-sm w-full shadow-2xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  <FolderPlus className="mr-2 text-blue-600" />
+                  Manage Departments
+                </h2>
+                <button onClick={() => setShowDeptModal(false)} className="text-gray-500 hover:text-gray-800"><X className="w-5 h-5"/></button>
+              </div>
+
+              <div className="space-y-4">
+                <form onSubmit={addDepartment} className="flex space-x-2">
+                  <input 
+                    type="text" 
+                    value={newDeptName} 
+                    onChange={e => setNewDeptName(e.target.value)} 
+                    placeholder="E.g. COLD_STORAGE" 
+                    className="flex-1 p-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-blue-500"
+                    required 
+                  />
+                  <button type="submit" className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 font-medium">Add</button>
+                </form>
+
+                <div className="border border-gray-200 rounded-md overflow-hidden max-h-60 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-gray-100">
+                      {departments.map(dept => (
+                        <tr key={dept} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 font-medium">{dept}</td>
+                          <td className="px-4 py-2 text-right">
+                            <button onClick={() => deleteDepartment(dept)} className="text-red-500 hover:text-red-700">
+                              <Trash2 className="w-4 h-4 inline" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {departments.length === 0 && (
+                        <tr><td colSpan={2} className="px-4 py-8 text-center text-gray-500">No departments configured.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <Network className="mr-3 text-blue-600" />
+              Routing Rule Builder
+            </h1>
+            <p className="text-gray-500 mt-2">
+              Rules are evaluated top-to-bottom. Highest priority rules catch parcels first. 
+              {activeVersion && <span className="ml-2 font-semibold text-green-600">Active v{activeVersion}</span>}
+            </p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => setShowDeptModal(true)}
+              className="bg-gray-100 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium flex items-center"
+            >
+              <FolderPlus className="w-4 h-4 mr-2" /> Departments
+            </button>
+            <button 
+              onClick={handleJsonToggle}
+              className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 font-medium"
+            >
+              {viewMode === 'VISUAL' ? 'Edit JSON' : 'Visual Builder'}
+            </button>
+            <button 
+              onClick={publishRules}
+              className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center shadow-sm"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Publish & Retro-Route
+            </button>
+          </div>
+        </div>
+
+        {saveStatus && (
+          <div className="bg-green-100 border border-green-300 text-green-800 p-4 rounded-lg flex items-center shadow-sm">
+            <CheckCircle className="w-5 h-5 mr-3" />
+            {saveStatus}
+          </div>
+        )}
+
+        {viewMode === 'JSON' ? (
+          <div className="bg-gray-900 rounded-xl overflow-hidden shadow-sm">
+            <textarea
+              value={jsonText}
+              onChange={e => setJsonText(e.target.value)}
+              className="w-full h-[600px] bg-gray-900 text-green-400 p-6 font-mono text-sm outline-none"
+              spellCheck="false"
+            />
+          </div>
+        ) : (
+          <div className="space-y-4">
+          <button 
+            onClick={addRule}
+            className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-colors flex items-center justify-center font-medium"
+          >
+            <Plus className="w-5 h-5 mr-2" /> Add New Rule
+          </button>
+
+          {rules.map((rule, index) => (
+            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex gap-6">
+              
+              {/* Order Controls */}
+              <div className="flex flex-col items-center justify-center border-r border-gray-100 pr-4 space-y-1">
+                <button onClick={() => moveRule(index, 'up')} disabled={index === 0} className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30">
+                  <ArrowUp className="w-5 h-5" />
+                </button>
+                <span className="text-xs font-mono text-gray-400 font-bold">{rule.priority}</span>
+                <button onClick={() => moveRule(index, 'down')} disabled={index === rules.length - 1} className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30">
+                  <ArrowDown className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Rule Editor */}
+              <div className="flex-1 space-y-4">
+                
+                <div className="flex justify-between items-center">
+                  <input 
+                    type="text" 
+                    value={rule.id} 
+                    onChange={e => updateRule(index, { ...rule, id: e.target.value })}
+                    className="font-bold text-gray-700 border-b border-dashed border-gray-300 focus:border-blue-500 outline-none w-64 bg-transparent"
+                    placeholder="Rule ID (e.g. heavy-items)"
+                  />
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={rule.enabled} 
+                        onChange={e => updateRule(index, { ...rule, enabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 relative"></div>
+                      <span className="ml-2 text-sm font-medium text-gray-600">{rule.enabled ? 'Enabled' : 'Disabled'}</span>
+                    </label>
+                    
+                    <button onClick={() => deleteRule(index)} className="text-gray-400 hover:text-red-500">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Condition Builder */}
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">If (Condition)</h3>
+                    <div className="flex space-x-2">
+                      <select 
+                        value={rule.condition.field}
+                        onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, field: e.target.value } })}
+                        className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="weightKg">Weight (kg)</option>
+                        <option value="valueEur">Value (€)</option>
+                        <option value="destinationCountry">Country Code</option>
+                      </select>
+                      
+                      <select 
+                        value={rule.condition.operator}
+                        onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, operator: e.target.value as any } })}
+                        className="block w-1/4 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="eq">Equal (==)</option>
+                        <option value="gt">Greater (&gt;)</option>
+                        <option value="gte">Greater/Eq (&gt;=)</option>
+                        <option value="lt">Less (&lt;)</option>
+                        <option value="lte">Less/Eq (&lt;=)</option>
+                      </select>
+                      
+                      <input 
+                        type="text"
+                        value={rule.condition.value}
+                        onChange={e => {
+                          const val = e.target.value;
+                          const num = Number(val);
+                          updateRule(index, { ...rule, condition: { ...rule.condition, value: isNaN(num) || val === '' ? val : num } });
+                        }}
+                        className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Value"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Builder */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <h3 className="text-xs font-semibold text-blue-500 uppercase tracking-wider mb-3">Then (Action)</h3>
+                    <div className="flex flex-col space-y-2">
+                      <select 
+                        value={rule.action.type}
+                        onChange={e => {
+                          const type = e.target.value as 'ROUTE' | 'REQUIRE_APPROVAL';
+                          if (type === 'ROUTE') {
+                            updateRule(index, { ...rule, action: { type, department: departments.length > 0 ? departments[0] : '' } });
+                          } else {
+                            updateRule(index, { ...rule, action: { type, approvalType: 'INSURANCE' } });
+                          }
+                        }}
+                        className="block w-full p-2 border border-blue-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        <option value="ROUTE">Route to Department</option>
+                        <option value="REQUIRE_APPROVAL">Flag for Approval</option>
+                      </select>
+                      
+                      {rule.action.type === 'ROUTE' && (
+                        <div className="flex space-x-2">
+                          <select
+                            value={rule.action.department}
+                            onChange={e => {
+                              updateRule(index, { ...rule, action: { type: 'ROUTE', department: e.target.value } });
+                            }}
+                            className="block w-full p-2 border border-blue-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                          >
+                            {departments.map(dept => (
+                              <option key={dept} value={dept}>{dept}</option>
+                            ))}
+                            {departments.length === 0 && (
+                              <option value="">No departments added</option>
+                            )}
+                          </select>
+                        </div>
+                      )}
+
+                      {rule.action.type === 'REQUIRE_APPROVAL' && (
+                        <input 
+                          type="text"
+                          value={rule.action.approvalType}
+                          onChange={e => updateRule(index, { ...rule, action: { type: 'REQUIRE_APPROVAL', approvalType: e.target.value.toUpperCase() } })}
+                          className="block w-full p-2 border border-blue-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Approval Type (e.g., INSURANCE)"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          ))}
+          
+          {rules.length === 0 && (
+            <div className="text-center p-12 bg-white rounded-xl border border-dashed border-gray-300">
+              <p className="text-gray-500">No active rules found. Click "Add Rule" to start.</p>
+            </div>
+          )}
+        </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
