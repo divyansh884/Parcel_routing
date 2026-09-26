@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 export const ruleConditionSchema = z.object({
   field: z.string(),
-  operator: z.enum(['gt', 'gte', 'lt', 'lte', 'eq']),
-  value: z.union([z.number(), z.string()]),
+  operator: z.string(),
+  value: z.any(),
 });
 
 export type RuleCondition = z.infer<typeof ruleConditionSchema>;

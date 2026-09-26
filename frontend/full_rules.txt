@@ -1,8 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { Network, Plus, Trash2, CheckCircle, ArrowUp, ArrowDown, FolderPlus, X } from 'lucide-react';
-import Navbar from '@/components/Navbar';
 
 type Rule = {
   id: string;
@@ -10,8 +9,8 @@ type Rule = {
   enabled: boolean;
   condition: {
     field: string;
-    operator: string;
-    value: any;
+    operator: 'gt' | 'gte' | 'lt' | 'lte' | 'eq';
+    value: number | string;
   };
   action: 
     | { type: 'ROUTE'; department: string }
@@ -25,7 +24,6 @@ export default function RulesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [parcelFields, setParcelFields] = useState<any[]>([]);
 
   // Departments State
   const [departments, setDepartments] = useState<string[]>([]);
@@ -45,18 +43,8 @@ export default function RulesPage() {
       setRole(storedRole);
       fetchRules(storedToken);
       fetchDepartments(storedToken);
-      fetchParcelFields(storedToken);
     }
   }, []);
-
-  const fetchParcelFields = async (authToken: string) => {
-    try {
-      const res = await fetch('http://localhost:3001/api/fields', {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      if (res.ok) setParcelFields(await res.json());
-    } catch (e) { console.error(e); }
-  };
 
   const fetchDepartments = async (authToken: string) => {
     try {
@@ -86,7 +74,10 @@ export default function RulesPage() {
         },
         body: JSON.stringify({ name: newDeptName })
       });
-      if (!res.ok) throw new Error('Failed to add department');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || 'Failed to add department');
+      }
       setDepartments([...departments, newDeptName.trim().toUpperCase()]);
       setNewDeptName('');
     } catch (err: any) {
@@ -106,7 +97,9 @@ export default function RulesPage() {
       if (res.ok) {
         setDepartments(departments.filter(d => d !== name));
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const fetchRules = async (authToken: string) => {
@@ -144,16 +137,11 @@ export default function RulesPage() {
   };
 
   const addRule = () => {
-    const defaultField = parcelFields.length > 0 ? parcelFields[0] : null;
     const newRule: Rule = {
       id: `rule-${Date.now()}`,
       priority: rules.length > 0 ? rules[0].priority + 10 : 100,
       enabled: true,
-      condition: { 
-        field: defaultField ? defaultField.name : 'weightKg', 
-        operator: defaultField && defaultField.operators.length > 0 ? defaultField.operators[0] : 'equals', 
-        value: '' 
-      },
+      condition: { field: 'weightKg', operator: 'lt', value: 10 },
       action: { type: 'ROUTE', department: departments.length > 0 ? departments[0] : 'REGULAR' }
     };
     setRules([newRule, ...rules]);
@@ -205,10 +193,7 @@ export default function RulesPage() {
         body: JSON.stringify(currentRules)
       });
       
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || 'Failed to publish rules');
-      }
+      if (!res.ok) throw new Error('Failed to publish rules');
       const data = await res.json();
       setActiveVersion(data.version);
       setSaveStatus('Published successfully! Parcels retro-routed.');
@@ -222,8 +207,8 @@ export default function RulesPage() {
   if (loading) return <div className="p-12 text-center text-gray-500">Loading Rules Engine...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto p-8 space-y-6">
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
 
         {/* DEPARTMENT MANAGER MODAL */}
         {showDeptModal && (
@@ -377,123 +362,43 @@ export default function RulesPage() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  
-                  {/* Condition Builder (DYNAMIC FIELD AWARE) */}
+                  {/* Condition Builder */}
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">If (Condition)</h3>
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex space-x-2">
                       <select 
                         value={rule.condition.field}
-                        onChange={e => {
-                          const fieldDef = parcelFields.find(f => f.name === e.target.value);
-                          updateRule(index, { 
-                            ...rule, 
-                            condition: { 
-                              field: e.target.value, 
-                              operator: fieldDef?.operators?.[0] || 'equals', 
-                              value: fieldDef?.type === 'boolean' ? false : '' 
-                            } 
-                          });
-                        }}
-                        className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, field: e.target.value } })}
+                        className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                       >
-                        {parcelFields.map(f => (
-                          <option key={f.name} value={f.name}>{f.label} ({f.name})</option>
-                        ))}
+                        <option value="weightKg">Weight (kg)</option>
+                        <option value="valueEur">Value (â‚¬)</option>
+                        <option value="destinationCountry">Country Code</option>
                       </select>
                       
                       <select 
                         value={rule.condition.operator}
-                        onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, operator: e.target.value } })}
-                        className="block w-full sm:w-1/4 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, operator: e.target.value as any } })}
+                        className="block w-1/4 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                       >
-                        {(parcelFields.find(f => f.name === rule.condition.field)?.operators || []).map((op: string) => (
-                          <option key={op} value={op}>{op.replace(/_/g, ' ')}</option>
-                        ))}
+                        <option value="eq">Equal (==)</option>
+                        <option value="gt">Greater (&gt;)</option>
+                        <option value="gte">Greater/Eq (&gt;=)</option>
+                        <option value="lt">Less (&lt;)</option>
+                        <option value="lte">Less/Eq (&lt;=)</option>
                       </select>
                       
-                      {(() => {
-                        const fieldDef = parcelFields.find(f => f.name === rule.condition.field);
-                        if (!fieldDef) return <input disabled className="block w-full sm:w-1/3 p-2 border rounded-md" />;
-                        
-                        if (fieldDef.type === 'boolean') {
-                          return (
-                            <select
-                              value={String(rule.condition.value)}
-                              onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value === 'true' } })}
-                              className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
-                            >
-                              <option value="true">True</option>
-                              <option value="false">False</option>
-                            </select>
-                          );
-                        }
-                        
-                        if (fieldDef.type === 'enum') {
-                          if (rule.condition.operator === 'in' || rule.condition.operator === 'not_in') {
-                             return (
-                               <select
-                                 multiple
-                                 value={Array.isArray(rule.condition.value) ? rule.condition.value : []}
-                                 onChange={e => {
-                                   const values = Array.from(e.target.selectedOptions, option => option.value);
-                                   updateRule(index, { ...rule, condition: { ...rule.condition, value: values } });
-                                 }}
-                                 className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white h-20"
-                               >
-                                 {fieldDef.values.map((v: string) => <option key={v} value={v}>{v}</option>)}
-                               </select>
-                             );
-                          }
-                          return (
-                            <select
-                              value={rule.condition.value || ''}
-                              onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })}
-                              className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
-                            >
-                              <option value="" disabled>Select...</option>
-                              {fieldDef.values.map((v: string) => <option key={v} value={v}>{v}</option>)}
-                            </select>
-                          );
-                        }
-
-                        if (fieldDef.type === 'date') {
-                          return (
-                            <input 
-                              type="date"
-                              value={rule.condition.value || ''}
-                              onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })}
-                              className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          );
-                        }
-
-                        if (fieldDef.type === 'number') {
-                          return (
-                            <input 
-                              type="number"
-                              value={rule.condition.value ?? ''}
-                              onChange={e => {
-                                const val = e.target.value;
-                                const num = Number(val);
-                                updateRule(index, { ...rule, condition: { ...rule.condition, value: isNaN(num) || val === '' ? val : num } });
-                              }}
-                              className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                              placeholder="Value"
-                            />
-                          );
-                        }
-
-                        return (
-                          <input 
-                            type="text"
-                            value={rule.condition.value || ''}
-                            onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })}
-                            className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Value"
-                          />
-                        );
-                      })()}
+                      <input 
+                        type="text"
+                        value={rule.condition.value}
+                        onChange={e => {
+                          const val = e.target.value;
+                          const num = Number(val);
+                          updateRule(index, { ...rule, condition: { ...rule.condition, value: isNaN(num) || val === '' ? val : num } });
+                        }}
+                        className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Value"
+                      />
                     </div>
                   </div>
 
@@ -518,7 +423,7 @@ export default function RulesPage() {
                       </select>
                       
                       {rule.action.type === 'ROUTE' && (
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex space-x-2">
                           <select
                             value={rule.action.department}
                             onChange={e => {

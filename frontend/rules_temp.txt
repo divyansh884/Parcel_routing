@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { Network, Plus, Trash2, CheckCircle, ArrowUp, ArrowDown, FolderPlus, X } from 'lucide-react';
@@ -381,7 +381,7 @@ export default function RulesPage() {
                   {/* Condition Builder (DYNAMIC FIELD AWARE) */}
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">If (Condition)</h3>
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex space-x-2">
                       <select 
                         value={rule.condition.field}
                         onChange={e => {
@@ -395,7 +395,7 @@ export default function RulesPage() {
                             } 
                           });
                         }}
-                        className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
                       >
                         {parcelFields.map(f => (
                           <option key={f.name} value={f.name}>{f.label} ({f.name})</option>
@@ -405,7 +405,7 @@ export default function RulesPage() {
                       <select 
                         value={rule.condition.operator}
                         onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, operator: e.target.value } })}
-                        className="block w-full sm:w-1/4 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        className="block w-1/4 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
                       >
                         {(parcelFields.find(f => f.name === rule.condition.field)?.operators || []).map((op: string) => (
                           <option key={op} value={op}>{op.replace(/_/g, ' ')}</option>
@@ -414,14 +414,14 @@ export default function RulesPage() {
                       
                       {(() => {
                         const fieldDef = parcelFields.find(f => f.name === rule.condition.field);
-                        if (!fieldDef) return <input disabled className="block w-full sm:w-1/3 p-2 border rounded-md" />;
+                        if (!fieldDef) return <input disabled className="block w-1/3 p-2 border rounded-md" />;
                         
                         if (fieldDef.type === 'boolean') {
                           return (
                             <select
                               value={String(rule.condition.value)}
                               onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value === 'true' } })}
-                              className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                              className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
                             >
                               <option value="true">True</option>
                               <option value="false">False</option>
@@ -439,7 +439,7 @@ export default function RulesPage() {
                                    const values = Array.from(e.target.selectedOptions, option => option.value);
                                    updateRule(index, { ...rule, condition: { ...rule.condition, value: values } });
                                  }}
-                                 className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white h-20"
+                                 className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white h-20"
                                >
                                  {fieldDef.values.map((v: string) => <option key={v} value={v}>{v}</option>)}
                                </select>
@@ -449,7 +449,7 @@ export default function RulesPage() {
                             <select
                               value={rule.condition.value || ''}
                               onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })}
-                              className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                              className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
                             >
                               <option value="" disabled>Select...</option>
                               {fieldDef.values.map((v: string) => <option key={v} value={v}>{v}</option>)}
@@ -463,7 +463,7 @@ export default function RulesPage() {
                               type="date"
                               value={rule.condition.value || ''}
                               onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })}
-                              className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                              className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                             />
                           );
                         }
@@ -478,7 +478,7 @@ export default function RulesPage() {
                                 const num = Number(val);
                                 updateRule(index, { ...rule, condition: { ...rule.condition, value: isNaN(num) || val === '' ? val : num } });
                               }}
-                              className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                              className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                               placeholder="Value"
                             />
                           );
@@ -489,7 +489,7 @@ export default function RulesPage() {
                             type="text"
                             value={rule.condition.value || ''}
                             onChange={e => updateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })}
-                            className="block w-full sm:w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="block w-1/3 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Value"
                           />
                         );
@@ -518,7 +518,7 @@ export default function RulesPage() {
                       </select>
                       
                       {rule.action.type === 'ROUTE' && (
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex space-x-2">
                           <select
                             value={rule.action.department}
                             onChange={e => {

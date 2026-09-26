@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { PackageSearch, Search, Trash2, X, Check, Eye, FileText, Upload, Save, AlertTriangle } from 'lucide-react';
@@ -244,9 +244,9 @@ export default function ParcelsPage() {
                       <button onClick={() => setGeneralEditMode(true)} className="text-blue-600 text-sm font-medium hover:underline">Edit</button>
                     )}
                   </div>
-                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 grid grid-cols-2 gap-4">
                     {/* Render standard and dynamic fields */}
-                    <div className="col-span-1 sm:col-span-2">
+                    <div className="col-span-2">
                       <label className="block text-xs font-semibold text-gray-500 uppercase">Tracking ID</label>
                       <div className="mt-1 font-mono text-gray-900">{generalForm.id || viewingParcel._id}</div>
                     </div>
@@ -278,11 +278,11 @@ export default function ParcelsPage() {
                       </div>
                     ))}
 
-                    <div className="col-span-1 sm:col-span-2 mt-2 pt-2 border-t border-gray-100">
+                    <div className="col-span-2 mt-2 pt-2 border-t border-gray-100">
                       <label className="block text-xs font-semibold text-gray-500 uppercase">Routing Outcome</label>
                       <div className="mt-1 flex items-center space-x-2">
                          <span className="font-bold text-gray-900">{viewingParcel.status}</span>
-                         <span className="text-gray-500">→ {viewingParcel.department || viewingParcel.approvalType || 'N/A'}</span>
+                         <span className="text-gray-500">â†’ {viewingParcel.department || viewingParcel.approvalType || 'N/A'}</span>
                       </div>
                       <div className="text-sm text-gray-500 mt-1">{viewingParcel.reason}</div>
                     </div>
@@ -305,7 +305,7 @@ export default function ParcelsPage() {
                       <button onClick={() => setInsuranceEditMode(true)} className="text-blue-600 text-sm font-medium hover:underline">Edit</button>
                     )}
                   </div>
-                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase">Policy Number</label>
                       {insuranceEditMode ? (
@@ -327,11 +327,11 @@ export default function ParcelsPage() {
                       {insuranceEditMode ? (
                         <input type="number" value={insuranceForm.coverageAmount || 0} onChange={e=>setInsuranceForm({...insuranceForm, coverageAmount: Number(e.target.value)})} className="mt-1 block w-full p-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:ring-blue-500" />
                       ) : (
-                        <div className="mt-1 text-gray-900">€{insuranceForm.coverageAmount || 0}</div>
+                        <div className="mt-1 text-gray-900">â‚¬{insuranceForm.coverageAmount || 0}</div>
                       )}
                     </div>
                     
-                    <div className="col-span-1 sm:col-span-2">
+                    <div className="col-span-2">
                       <label className="block text-xs font-semibold text-gray-500 uppercase">Document File</label>
                       
                       {insuranceEditMode ? (
@@ -426,67 +426,7 @@ export default function ParcelsPage() {
 
         {error && <div className="text-red-500 bg-red-50 p-4 rounded">{error}</div>}
 
-        {/* Mobile View: Cards */}
-        <div className="grid grid-cols-1 gap-4 md:hidden">
-          {parcels.map(p => (
-            <div key={p._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col space-y-3 relative">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="text-xs font-semibold text-gray-500 uppercase">Parcel ID</div>
-                  <div className="font-mono text-gray-900 font-medium text-sm">{p.parcelId || p._id.substring(0,8)}</div>
-                </div>
-                <span className={`px-2 py-1 inline-flex text-[10px] leading-5 font-bold uppercase rounded-full ${
-                  p.status === 'ROUTED' ? 'bg-green-100 text-green-800' :
-                  p.status === 'PENDING_APPROVAL' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {p.status}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-2 py-2 border-y border-gray-50">
-                <div>
-                  <div className="text-[10px] text-gray-400 uppercase">Weight</div>
-                  <div className="font-medium text-gray-800 text-sm">{p.weightKg} kg</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400 uppercase">Value</div>
-                  <div className="font-medium text-gray-800 text-sm">€{p.valueEur}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400 uppercase">Country</div>
-                  <div className="font-medium text-gray-800 text-sm">{p.destinationCountry}</div>
-                </div>
-              </div>
-              
-              <div>
-                <div className="text-[10px] text-gray-400 uppercase">Department / Reason</div>
-                <div className="text-sm text-gray-700 font-medium">{p.department || p.approvalType || 'N/A'}</div>
-                <div className="text-xs text-gray-500 line-clamp-1">{p.reason}</div>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
-                <button onClick={() => openModal(p)} className="text-blue-600 flex items-center text-sm font-medium hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg w-full justify-center">
-                  <Eye className="w-4 h-4 mr-1"/> View Details
-                </button>
-                {role === 'ADMIN' && (
-                  <button onClick={() => handleDelete(p._id)} className="text-red-600 flex-shrink-0 hover:text-red-800 bg-red-50 px-3 py-1.5 rounded-lg">
-                    <Trash2 className="w-4 h-4"/>
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-          {parcels.length === 0 && !loading && (
-            <div className="text-center py-10 bg-white rounded-xl border border-gray-200">
-              <PackageSearch className="mx-auto h-10 w-10 text-gray-300 mb-2" />
-              <p className="text-gray-500">No parcels found.</p>
-            </div>
-          )}
-        </div>
-
-        {/* Desktop View: Table */}
-        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -513,7 +453,7 @@ export default function ParcelsPage() {
                     {/* Weight & Value */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{p.weightKg} kg</div>
-                      <div className="text-xs text-gray-500">€{p.valueEur}</div>
+                      <div className="text-xs text-gray-500">â‚¬{p.valueEur}</div>
                     </td>
 
                     {/* Status & Dept */}

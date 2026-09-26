@@ -60,3 +60,35 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
     next(error);
   }
 };
+
+export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { email, role, password } = req.body;
+
+    const user = await UserModel.findById(id);
+    if (!user) throw new AppError('User not found', 404, 'NOT_FOUND');
+
+    if (email) user.email = email;
+    if (role) user.role = role;
+    if (password && password.trim() !== '') {
+      user.passwordHash = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+    return res.json({ id: user.id, email: user.email, role: user.role });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const user = await UserModel.findByIdAndDelete(id);
+    if (!user) throw new AppError('User not found', 404, 'NOT_FOUND');
+    return res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { routeParcel, getPendingApprovals, approveDecision, getAllParcels, updateParcel, deleteParcel, updateInsurance } from '../controllers/parcelController';
+import { routeParcel, getPendingApprovals, approveDecision, rejectDecision, getAllParcels, updateParcel, deleteParcel, updateInsurance } from '../controllers/parcelController';
 import { authenticate, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -10,6 +10,7 @@ router.post('/route', authenticate, requireRole(['OPERATOR', 'ADMIN']), routePar
 // AUDITOR routes
 router.get('/pending', authenticate, requireRole(['AUDITOR', 'ADMIN']), getPendingApprovals);
 router.put('/decision/:id/approve', authenticate, requireRole(['AUDITOR', 'ADMIN']), approveDecision);
+router.put('/decision/:id/reject', authenticate, requireRole(['AUDITOR', 'ADMIN']), rejectDecision);
 
 // ALL roles can view parcels
 router.get('/', authenticate, requireRole(['OPERATOR', 'ADMIN', 'AUDITOR']), getAllParcels);

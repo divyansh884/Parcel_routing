@@ -5,6 +5,34 @@ import { ruleSetSchema } from '../domain/rule';
 import { AppError } from '../errors/AppError';
 import { RoutingEngine } from '../routing/engine';
 import { logger } from '../observability/logger';
+import { ParcelFieldModel } from '../models/ParcelField';
+
+const validateRulesAgainstFields = async (rules: any[]) => {
+  const fields = await ParcelFieldModel.find({ active: true });
+  const fieldMap = new Map(fields.map(f => [f.name, f]));
+
+  for (const rule of rules) {
+    if (!rule.condition || !rule.condition.field) continue;
+    
+    const condition = rule.condition;
+    const def = fieldMap.get(condition.field);
+    
+    if (!def) {
+      throw new AppError(`Field '${condition.field}' is not defined or inactive.`, 400, 'VALIDATION_ERROR');
+    }
+    
+    if (!def.operators.includes(condition.operator)) {
+      throw new AppError(`Operator '${condition.operator}' is not allowed for field '${condition.field}' (type: ${def.type}).`, 400, 'VALIDATION_ERROR');
+    }
+    
+    // Enum validation
+    if (def.type === 'enum' && ['equals', 'not_equals'].includes(condition.operator)) {
+      if (!def.values?.includes(condition.value)) {
+        throw new AppError(`Value '${condition.value}' is not a valid option for enum field '${condition.field}'.`, 400, 'VALIDATION_ERROR');
+      }
+    }
+  }
+};
 
 export const getActiveRules = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -22,6 +50,8 @@ export const createDraft = async (req: Request, res: Response, next: NextFunctio
   try {
     const parsedData = ruleSetSchema.parse(req.body);
     
+    await validateRulesAgainstFields(parsedData.rules);
+
     // Check if the version already exists
     const existingVersion = await RuleSetModel.findOne({ version: parsedData.version });
     if (existingVersion) {
@@ -83,7 +113,7 @@ export const publishRules = async (req: Request, res: Response, next: NextFuncti
         weightKg: doc.weightKg,
         valueEur: doc.valueEur,
         destinationCountry: doc.destinationCountry,
-        additionalAttributes: doc.additionalAttributes || {}
+        attributes: doc.additionalAttributes || {}
       };
       
       try {
@@ -130,6 +160,8 @@ export const publishDirect = async (req: Request, res: Response, next: NextFunct
   try {
     const rules = req.body;
     
+    await validateRulesAgainstFields(rules);
+
     // Find latest version
     const latest = await RuleSetModel.findOne().sort({ version: -1 });
     const nextVersion = latest ? latest.version + 1 : 1;
@@ -161,7 +193,7 @@ export const publishDirect = async (req: Request, res: Response, next: NextFunct
         weightKg: doc.weightKg,
         valueEur: doc.valueEur,
         destinationCountry: doc.destinationCountry,
-        additionalAttributes: doc.additionalAttributes || {}
+        attributes: doc.additionalAttributes || {}
       };
       
       try {

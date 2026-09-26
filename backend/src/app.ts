@@ -13,6 +13,7 @@ import { batchRoutes } from './routes/batchRoutes';
 import { authRoutes } from './routes/authRoutes';
 import { cloudinaryRoutes } from './routes/cloudinaryRoutes';
 import { departmentRoutes } from './routes/departmentRoutes';
+import { fieldRoutes } from './routes/fieldRoutes';
 import { rateLimit } from 'express-rate-limit';
 
 const app = express();
@@ -21,10 +22,10 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Global Rate Limiting: max 100 requests per 15 minutes per IP
+// Global Rate Limiting: max 5000 requests per 15 minutes per IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  limit: 100, 
+  limit: 5000, 
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: { message: 'Too many requests from this IP, please try again later.' } }
@@ -53,6 +54,7 @@ app.use('/api/rules', ruleRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/fields', fieldRoutes);
 
 app.use(errorHandler);
 

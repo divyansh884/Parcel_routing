@@ -6,6 +6,8 @@ import { RoutingDecisionModel } from '../models/RoutingDecision';
 import { AppError } from '../errors/AppError';
 import { randomUUID } from 'crypto';
 
+import { sendEmail } from '../services/emailService';
+
 export const routeParcel = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const parcel = parcelSchema.parse(req.body);
@@ -24,6 +26,7 @@ export const routeParcel = async (req: Request, res: Response, next: NextFunctio
     // Persist Decision
     const decisionRecord = new RoutingDecisionModel({
       parcelId: parcel.id,
+      customerEmail: parcel.customerEmail,
       weightKg: parcel.weightKg,
       valueEur: parcel.valueEur,
       destinationCountry: parcel.destinationCountry,
@@ -38,6 +41,17 @@ export const routeParcel = async (req: Request, res: Response, next: NextFunctio
     });
 
     await decisionRecord.save();
+    
+    // Async email notification - doesn't block the response
+    if (decision.status === 'PENDING_APPROVAL' && ('approvalType' in decision) && decision.approvalType === 'INSURANCE') {
+      if (parcel.customerEmail) {
+        sendEmail(
+          parcel.customerEmail, 
+          'Action Required: Your Parcel is Waitlisted for Insurance', 
+          `Hello, your parcel has been routed and is currently waitlisted pending insurance review. We will notify you once it gets approved or rejected.\n\nReason: ${decision.reason}`
+        );
+      }
+    }
 
     return res.status(200).json(decision);
   } catch (error) {
@@ -83,7 +97,47 @@ export const approveDecision = async (req: Request, res: Response, next: NextFun
     
     await decision.save();
 
+    if (decision.customerEmail) {
+      sendEmail(
+        decision.customerEmail,
+        'Insurance Approved: Your Parcel Gets the Insurance',
+        `Great news! Your parcel's insurance has been approved and it is now successfully routed.\n\nPolicy Number: ${insuranceDetails?.policyNumber || 'N/A'}`
+      );
+    }
+
     return res.status(200).json(decision);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const rejectDecision = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    
+    const decision = await RoutingDecisionModel.findById(id);
+    if (!decision) {
+      throw new AppError('Routing decision not found', 404, 'NOT_FOUND');
+    }
+
+    if (decision.status !== 'PENDING_APPROVAL') {
+      throw new AppError('Decision is not pending approval', 400, 'INVALID_STATE');
+    }
+    
+    const customerEmail = decision.customerEmail;
+
+    // The user requirement: "auditor disapprove it the mail will sent that your mail apply for resubmiison and that parcel will automatically get deleted"
+    await RoutingDecisionModel.findByIdAndDelete(id);
+
+    if (customerEmail) {
+      sendEmail(
+        customerEmail,
+        'Insurance Rejected: Please Apply for Resubmission',
+        `Unfortunately, the insurance request for your parcel was rejected by our auditors. Your parcel routing request has been deleted. Please apply for resubmission with the correct details.`
+      );
+    }
+
+    return res.status(200).json({ message: 'Parcel rejected and deleted successfully' });
   } catch (error) {
     next(error);
   }

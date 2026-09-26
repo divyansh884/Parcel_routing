@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRoutingDecision extends Document {
   parcelId?: string;
+  customerEmail?: string;
   weightKg: number;
   valueEur: number;
   destinationCountry: string;
@@ -27,6 +28,7 @@ export interface IRoutingDecision extends Document {
 const routingDecisionSchema = new Schema<IRoutingDecision>(
   {
     parcelId: { type: String, index: true },
+    customerEmail: { type: String },
     weightKg: { type: Number, required: true },
     valueEur: { type: Number, required: true },
     destinationCountry: { type: String, required: true },

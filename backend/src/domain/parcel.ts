@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const parcelSchema = z.object({
   id: z.string().optional(),
+  customerEmail: z.string().email({ message: 'Invalid email address' }).optional(),
   weightKg: z.number().min(0, { message: 'Weight cannot be negative' }),
   valueEur: z.number().min(0, { message: 'Value cannot be negative' }),
   destinationCountry: z.string().length(2, { message: 'Must be a 2-letter ISO code' }),
