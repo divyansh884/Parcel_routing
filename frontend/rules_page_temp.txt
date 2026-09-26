@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { API_BASE_URL } from '@/config/api';
 
 import { useState, useEffect } from 'react';
@@ -286,7 +286,7 @@ export default function RulesPage() {
               {activeVersion && <span className="ml-2 font-semibold text-green-600">Active v{activeVersion}</span>}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center space-x-3">
             <button 
               onClick={() => setShowDeptModal(true)}
               className="bg-gray-100 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium flex items-center"
@@ -335,34 +335,31 @@ export default function RulesPage() {
           </button>
 
           {rules.map((rule, index) => (
-            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6">
+            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex gap-6">
               
               {/* Order Controls */}
-              <div className="flex flex-row sm:flex-col items-center justify-between sm:justify-center border-b sm:border-b-0 sm:border-r border-gray-100 pb-4 sm:pb-0 sm:pr-4 space-x-4 sm:space-x-0 sm:space-y-1">
-                <span className="text-xs font-semibold text-gray-400 sm:hidden uppercase tracking-wider">Priority</span>
-                <div className="flex sm:flex-col items-center space-x-2 sm:space-x-0">
-                  <button onClick={() => moveRule(index, 'up')} disabled={index === 0} className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30">
-                    <ArrowUp className="w-5 h-5 sm:rotate-0 -rotate-90" />
-                  </button>
-                  <span className="text-xs font-mono text-gray-400 font-bold">{rule.priority}</span>
-                  <button onClick={() => moveRule(index, 'down')} disabled={index === rules.length - 1} className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30">
-                    <ArrowDown className="w-5 h-5 sm:rotate-0 -rotate-90" />
-                  </button>
-                </div>
+              <div className="flex flex-col items-center justify-center border-r border-gray-100 pr-4 space-y-1">
+                <button onClick={() => moveRule(index, 'up')} disabled={index === 0} className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30">
+                  <ArrowUp className="w-5 h-5" />
+                </button>
+                <span className="text-xs font-mono text-gray-400 font-bold">{rule.priority}</span>
+                <button onClick={() => moveRule(index, 'down')} disabled={index === rules.length - 1} className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30">
+                  <ArrowDown className="w-5 h-5" />
+                </button>
               </div>
 
               {/* Rule Editor */}
               <div className="flex-1 space-y-4">
                 
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div className="flex justify-between items-center">
                   <input 
                     type="text" 
                     value={rule.id} 
                     onChange={e => updateRule(index, { ...rule, id: e.target.value })}
-                    className="font-bold text-gray-700 border-b border-dashed border-gray-300 focus:border-blue-500 outline-none w-full sm:w-64 bg-transparent"
+                    className="font-bold text-gray-700 border-b border-dashed border-gray-300 focus:border-blue-500 outline-none w-64 bg-transparent"
                     placeholder="Rule ID (e.g. heavy-items)"
                   />
-                  <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-4">
+                  <div className="flex items-center space-x-4">
                     <label className="flex items-center cursor-pointer">
                       <input 
                         type="checkbox" 
