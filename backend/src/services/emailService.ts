@@ -1,40 +1,9 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { logger } from '../observability/logger';
 
-let transporter: any = null;
-
-const getTransporter = async () => {
-  if (transporter) return transporter;
-
-  if (process.env.SMTP_HOST) {
-    const isSecure = process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465;
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: isSecure,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-    return transporter;
-  }
-
-  // Create a real testing account on the fly for Ethereal
-  const testAccount = await nodemailer.createTestAccount();
-  transporter = nodemailer.createTransport({
-    host: testAccount.smtp.host,
-    port: testAccount.smtp.port,
-    secure: testAccount.smtp.secure,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
-  
-  logger.info('Ethereal Email test account created automatically.');
-  return transporter;
-};
+// Initialize Resend with the API key from environment variables.
+// It will gracefully fail later if the key isn't provided.
+const resend = new Resend(process.env.RESEND_API_KEY || 'missing_key');
 
 export const sendEmail = async (to: string, subject: string, text: string) => {
   if (!to) {
@@ -42,24 +11,30 @@ export const sendEmail = async (to: string, subject: string, text: string) => {
     return;
   }
   
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn(`Email send skipped: RESEND_API_KEY is not configured in .env. Would have sent: [${subject}] to ${to}`);
+    return;
+  }
+  
   try {
-    const activeTransporter = await getTransporter();
+    // Resend requires the sender email to be verified on their platform, 
+    // but they allow testing via 'onboarding@resend.dev'
+    const sender = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     
-    const sender = process.env.SMTP_FROM || '"Parcel Routing System" <noreply@parcelrouter.local>';
-    
-    const info = await activeTransporter.sendMail({
-      from: sender,
+    const { data, error } = await resend.emails.send({
+      from: `Parcel Router <${sender}>`,
       to,
       subject,
-      text,
+      text, // Sending plain text, Resend also supports 'html' seamlessly
     });
-    
-    logger.info(`Email sent to ${to}: ${subject} (MessageId: ${info.messageId})`);
-    
-    if (!process.env.SMTP_HOST) {
-      logger.info(`Email Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+
+    if (error) {
+      logger.error({ error, to, subject }, 'Resend API returned an error');
+      return;
     }
+    
+    logger.info(`Email successfully sent via Resend to ${to}: ${subject} (MessageId: ${data?.id})`);
   } catch (error) {
-    logger.error({ error, to, subject }, 'Failed to send email');
+    logger.error({ error, to, subject }, 'Failed to send email via Resend SDK');
   }
 };

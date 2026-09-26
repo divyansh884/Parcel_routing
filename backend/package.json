@@ -28,9 +28,9 @@
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.6.0",
     "mongoose": "^9.10.2",
-    "nodemailer": "^10.0.10",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
+    "resend": "^6.30.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -39,7 +39,6 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.6.2",
-    "@types/nodemailer": "^8.0.2",
     "@types/pino-http": "^5.8.4",
     "@types/supertest": "^7.2.1",
     "nodemon": "^3.1.14",
