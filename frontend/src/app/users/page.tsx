@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/config/api';
 
 import { useState, useEffect } from 'react';
 import { Users, UserPlus, Shield, Trash2, Edit2, X, Check } from 'lucide-react';
@@ -45,7 +46,7 @@ export default function UsersPage() {
 
   const fetchUsers = async (authToken: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/auth/users', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/users`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (!res.ok) throw new Error('Failed to fetch users');
@@ -64,7 +65,7 @@ export default function UsersPage() {
     setError(null);
     setSuccess(null);
     try {
-      const res = await fetch('http://localhost:3001/api/auth/users', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/users`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -92,7 +93,7 @@ export default function UsersPage() {
     e.preventDefault();
     if (!token || !editingUser) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/auth/users/${editingUser._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/users/${editingUser._id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ export default function UsersPage() {
   const handleDelete = async (id: string) => {
     if (!token || !confirm('Are you sure you want to delete this user?')) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/auth/users/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/users/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

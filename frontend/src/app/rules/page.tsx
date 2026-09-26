@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/config/api';
 
 import { useState, useEffect } from 'react';
 import { Network, Plus, Trash2, CheckCircle, ArrowUp, ArrowDown, FolderPlus, X } from 'lucide-react';
@@ -51,7 +52,7 @@ export default function RulesPage() {
 
   const fetchParcelFields = async (authToken: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/fields', {
+      const res = await fetch(`${API_BASE_URL}/api/fields`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (res.ok) setParcelFields(await res.json());
@@ -60,7 +61,7 @@ export default function RulesPage() {
 
   const fetchDepartments = async (authToken: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/departments', {
+      const res = await fetch(`${API_BASE_URL}/api/departments`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (res.ok) {
@@ -78,7 +79,7 @@ export default function RulesPage() {
     if (!token || !newDeptName.trim()) return;
 
     try {
-      const res = await fetch('http://localhost:3001/api/departments', {
+      const res = await fetch(`${API_BASE_URL}/api/departments`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ export default function RulesPage() {
     if (!token || !confirm(`Delete department ${name}?`)) return;
 
     try {
-      const res = await fetch(`http://localhost:3001/api/departments/${name}`, {
+      const res = await fetch(`${API_BASE_URL}/api/departments/${name}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -111,7 +112,7 @@ export default function RulesPage() {
 
   const fetchRules = async (authToken: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/rules/active', {
+      const res = await fetch(`${API_BASE_URL}/api/rules/active`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (!res.ok) throw new Error('Failed to fetch rules');
@@ -196,7 +197,7 @@ export default function RulesPage() {
     try {
       const currentRules = viewMode === 'JSON' ? JSON.parse(jsonText) : rules;
       
-      const res = await fetch('http://localhost:3001/api/rules/publish', {
+      const res = await fetch(`${API_BASE_URL}/api/rules/publish`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

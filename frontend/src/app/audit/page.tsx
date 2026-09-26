@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/config/api';
 
 import { useState, useEffect } from 'react';
 import { ShieldCheck, CheckCircle, UploadCloud, FileText, Check } from 'lucide-react';
@@ -33,7 +34,7 @@ export default function AuditPage() {
 
   const fetchPending = async (authToken: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/parcels/pending', {
+      const res = await fetch(`${API_BASE_URL}/api/parcels/pending`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (!res.ok) throw new Error('Failed to fetch pending parcels');
@@ -56,7 +57,7 @@ export default function AuditPage() {
     
     try {
       // 1. Get Signature from backend
-      const signRes = await fetch('http://localhost:3001/api/cloudinary/sign', {
+      const signRes = await fetch(`${API_BASE_URL}/api/cloudinary/sign`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const signData = await signRes.json();
@@ -97,7 +98,7 @@ export default function AuditPage() {
     if (!token || !approvingId) return;
     
     try {
-      const res = await fetch(`http://localhost:3001/api/parcels/decision/${approvingId}/approve`, {
+      const res = await fetch(`${API_BASE_URL}/api/parcels/decision/${approvingId}/approve`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -131,7 +132,7 @@ export default function AuditPage() {
   const handleRejectSubmit = async (id: string) => {
     if (!token || !confirm('Are you sure you want to reject this parcel? It will be deleted and an email will be sent.')) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/parcels/decision/${id}/reject`, {
+      const res = await fetch(`${API_BASE_URL}/api/parcels/decision/${id}/reject`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });

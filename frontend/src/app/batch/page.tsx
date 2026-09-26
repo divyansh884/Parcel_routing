@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/config/api';
 
 import { useState, useRef, useEffect } from 'react';
 import { UploadCloud, File, PlayCircle, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -40,7 +41,7 @@ export default function BatchPage() {
       const text = await file.text();
       const parcels = JSON.parse(text);
 
-      const res = await fetch('http://localhost:3001/api/batches', {
+      const res = await fetch(`${API_BASE_URL}/api/batches`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ export default function BatchPage() {
   const pollStatus = async (id: string) => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/batches/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/batches/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();

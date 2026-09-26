@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/config/api';
 
 import { useState, useEffect } from 'react';
 import { Package, Truck, AlertTriangle, CheckCircle, Search } from 'lucide-react';
@@ -41,7 +42,7 @@ export default function Home() {
 
   const fetchFields = async (authToken: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/fields', {
+      const res = await fetch(`${API_BASE_URL}/api/fields`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (res.ok) {
@@ -93,7 +94,7 @@ export default function Home() {
         }
       });
 
-      const res = await fetch('http://localhost:3001/api/parcels/route', {
+      const res = await fetch(`${API_BASE_URL}/api/parcels/route`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

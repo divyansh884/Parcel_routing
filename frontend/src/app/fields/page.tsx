@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/config/api';
 
 import { useState, useEffect } from 'react';
 import { Database, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
@@ -42,7 +43,7 @@ export default function FieldsPage() {
 
   const fetchFields = async (authToken: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/fields', {
+      const res = await fetch(`${API_BASE_URL}/api/fields`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (res.ok) setFields(await res.json());
@@ -59,7 +60,7 @@ export default function FieldsPage() {
         values: formData.type === 'enum' ? enumValueStr.split(',').map(s => s.trim()).filter(Boolean) : [] 
       };
 
-      const res = await fetch('http://localhost:3001/api/fields', {
+      const res = await fetch(`${API_BASE_URL}/api/fields`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +87,7 @@ export default function FieldsPage() {
   const deleteField = async (id: string) => {
     if (!confirm('Are you sure you want to delete this field?')) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/fields/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/fields/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

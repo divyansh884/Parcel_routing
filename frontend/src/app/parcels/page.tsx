@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/config/api';
 
 import { useState, useEffect } from 'react';
 import { PackageSearch, Search, Trash2, X, Check, Eye, FileText, Upload, Save, AlertTriangle } from 'lucide-react';
@@ -61,7 +62,7 @@ export default function ParcelsPage() {
 
   const fetchFields = async (authToken: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/fields', {
+      const res = await fetch(`${API_BASE_URL}/api/fields`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (res.ok) setFields(await res.json());
@@ -71,7 +72,7 @@ export default function ParcelsPage() {
   const fetchParcels = async (authToken: string, searchQuery: string = '') => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:3001/api/parcels?search=${encodeURIComponent(searchQuery)}`, {
+      const res = await fetch(`${API_BASE_URL}/api/parcels?search=${encodeURIComponent(searchQuery)}`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (!res.ok) throw new Error('Failed to fetch parcels');
@@ -92,7 +93,7 @@ export default function ParcelsPage() {
   const handleDelete = async (id: string) => {
     if (!token || !confirm('Are you sure you want to delete this parcel?')) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/parcels/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/parcels/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -127,7 +128,7 @@ export default function ParcelsPage() {
     setUploadProgress(10);
     
     try {
-      const signRes = await fetch('http://localhost:3001/api/cloudinary/sign', {
+      const signRes = await fetch(`${API_BASE_URL}/api/cloudinary/sign`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!signRes.ok) throw new Error('Failed to get signature');
@@ -177,7 +178,7 @@ export default function ParcelsPage() {
         }
       });
 
-      const res = await fetch(`http://localhost:3001/api/parcels/${viewingParcel._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/parcels/${viewingParcel._id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -199,7 +200,7 @@ export default function ParcelsPage() {
   const saveInsurance = async () => {
     if (!token || !viewingParcel) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/parcels/${viewingParcel._id}/insurance`, {
+      const res = await fetch(`${API_BASE_URL}/api/parcels/${viewingParcel._id}/insurance`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
